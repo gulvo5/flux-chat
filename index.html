@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLUX Studio</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #000000;
+            color: #f5f5f5;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ════════════════════════════════════════
+           SIDEBAR
+           ════════════════════════════════════════ */
+        .sidebar {
+            width: 260px;
+            min-width: 260px;
+            max-width: 260px;
+            height: 100vh;
+            background: rgba(28, 28, 30, 0.55);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(ellipse 80% 50% at 20% 30%, rgba(255,255,255,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 80% 10%, rgba(255,255,255,0.03) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .sidebar > * { position: relative; z-index: 1; }
+
+        .sidebar-header {
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            flex-shrink: 0;
+        }
+
+        .sidebar-logo {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: #fff;
+            margin-bottom: 2px;
+        }
+
+        .sidebar-subtitle {
+            font-size: 11px;
+            color: #555;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .sidebar-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 16px 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .sidebar-body::-webkit-scrollbar { width: 3px; }
+        .sidebar-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+
+        .new-chat {
+            background: rgba(255, 255, 255, 0.92);
+            color: #000;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.2px;
+            width: 100%;
+        }
+
+        .new-chat:hover {
+            background: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(255,255,255,0.12);
+        }
+
+        .new-chat:active { transform: scale(0.98); }
+
+        .history-title {
+            color: #444;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+            padding-left: 4px;
+        }
+
+        .history-item {
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 2px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #777;
+            transition: all 0.2s;
+            font-weight: 400;
+            line-height: 1.4;
+            position: relative;
+            overflow: hidden;
+            word-break: break-word;
+        }
+
+        .history-item::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 2px;
+            background: #fff;
+            border-radius: 0 2px 2px 0;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .history-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: #aaa;
+        }
+
+        .history-item.active {
+            background: rgba(255,255,255,0.08);
+            color: #ddd;
+            font-weight: 500;
+        }
+
+        .history-item.active::before { opacity: 1; }
+
+        .sidebar-footer {
+            padding: 12px 20px;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            font-size: 10px;
+            color: #333;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        /* ════════════════════════════════════════
+           MAIN CHAT
+           ════════════════════════════════════════ */
+        .chat-app {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: #000;
+            min-width: 0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .header {
+            height: 56px;
+            padding: 0 24px;
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .header > * { position: relative; z-index: 1; }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .header-left h1 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: #fff;
+            white-space: nowrap;
+        }
+
+        .badge {
+            background: rgba(255,255,255,0.05);
+            color: #666;
+            font-size: 10px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.06);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #555;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #30d158;
+            box-shadow: 0 0 6px rgba(48, 209, 88, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        .status-dot.offline {
+            background: #ff453a;
+            box-shadow: 0 0 6px rgba(255, 69, 58, 0.3);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            height: 48px;
+            padding: 0 24px;
+            background: rgba(15,15,15,0.5);
+            backdrop-filter: blur(30px);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .settings-left {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .settings-left label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s;
+            white-space: nowrap;
+        }
+
+        .settings-left label:hover { color: #888; }
+
+        .comfy-status {
+            font-size: 11px;
+            color: #444;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .comfy-status.connected { color: #30d158; }
+        .comfy-status.error { color: #ff453a; }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 80px;
+            height: 3px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 10px;
+            outline: none;
+            flex-shrink: 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        /* Messages Area */
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 0;
+            align-items: center;
+        }
+
+        .messages::-webkit-scrollbar { width: 5px; }
+        .messages::-webkit-scrollbar-track { background: transparent; }
+        .messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 10px; }
+
+        .message-wrapper {
+            display: flex;
+            gap: 14px;
+            opacity: 0;
+            transform: translateY(16px);
+            animation: appear 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .message-wrapper.user {
+            margin-left: auto;
+            justify-content: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        @keyframes appear {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .message-wrapper.user .avatar {
+            background: rgba(255,255,255,0.9);
+            color: #000;
+            border: none;
+        }
+
+        .message-wrapper.assistant .avatar {
+            background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+        }
+
+        .content {
+            line-height: 1.6;
+            font-size: 14.5px;
+            color: #d0d0d0;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            max-width: calc(100% - 46px);
+        }
+
+        .message-wrapper.assistant .content {
+            background: rgba(30, 30, 32, 0.55);
+            backdrop-filter: blur(30px) saturate(150%);
+            -webkit-backdrop-filter: blur(30px) saturate(150%);
+            padding: 16px 20px;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.06);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .message-wrapper.assistant .content::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 50%;
+            background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .message-wrapper.user .content {
+            background: rgba(255,255,255,0.9);
+            color: #000;
+            padding: 12px 18px;
+            border-radius: 18px;
+            font-weight: 500;
+            font-size: 14.5px;
+        }
+
+        .content img {
+            max-width: 100%;
+            border-radius: 14px;
+            margin-top: 14px;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.04);
+            display: block;
+        }
+
+        .btn-group {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 7px 14px;
+            border-radius: 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.25s;
+            font-weight: 600;
+            border: none;
+            outline: none;
+        }
+
+        .download-btn {
+            background: rgba(255,255,255,0.85);
+            color: #000;
+        }
+
+        .download-btn:hover {
+            background: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(255,255,255,0.15);
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            width: 100%;
+            height: 3px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 3px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #30d158, #34c759);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            font-size: 11px;
+            color: #555;
+            margin-top: 8px;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 16px 24px 24px;
+            background: rgba(5,5,5,0.6);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border-top: 1px solid rgba(255,255,255,0.04);
+            position: relative;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .input-area::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+        }
+
+        .input-container {
+            background: rgba(40, 40, 42, 0.45);
+            backdrop-filter: blur(30px) saturate(150%);
+            -webkit-backdrop-filter: blur(30px) saturate(150%);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: end;
+            gap: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .input-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 20%; right: 20%;
+            height: 40%;
+            background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.06) 0%, transparent 70%);
+            pointer-events: none;
+            border-radius: 24px 24px 0 0;
+        }
+
+        .input-container:focus-within {
+            border-color: rgba(255,255,255,0.2);
+            box-shadow: 
+                0 0 0 3px rgba(255,255,255,0.04),
+                0 6px 24px rgba(0,0,0,0.3);
+            background: rgba(40, 40, 42, 0.6);
+        }
+
+        .input-container textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #ddd;
+            font-size: 14.5px;
+            resize: none;
+            max-height: 180px;
+            padding: 8px 12px;
+            font-family: inherit;
+            line-height: 1.5;
+            min-height: 20px;
+            width: 100%;
+        }
+
+        .input-container textarea::placeholder {
+            color: #444;
+            font-weight: 400;
+        }
+
+        .input-container button {
+            background: rgba(255,255,255,0.9);
+            color: #000;
+            border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .input-container button:hover {
+            transform: scale(1.1) rotate(12deg);
+            background: #fff;
+            box-shadow: 0 4px 16px rgba(255,255,255,0.25);
+        }
+
+        .input-container button:active { transform: scale(0.95); }
+        .input-container button:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Mobile menu */
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 22px;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 8px;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .menu-toggle:hover { background: rgba(255,255,255,0.08); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -260px;
+                top: 0; bottom: 0;
+                z-index: 100;
+                transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .sidebar.open { left: 0; }
+            .menu-toggle { display: block; }
+            .messages { padding: 16px; }
+            .input-area { padding: 12px 16px 20px; }
+            .header { padding: 0 16px; height: 52px; }
+            .settings-panel { padding: 0 16px; height: 44px; }
+            .message-wrapper { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">FLUX Studio</div>
+            <div class="sidebar-subtitle">AI Image Generation</div>
+        </div>
+        <div class="sidebar-body">
+            <button class="new-chat" onclick="newChat()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Новый чат
+            </button>
+            <div class="history-title">История</div>
+            <div id="historyList"></div>
+        </div>
+        <div class="sidebar-footer">ComfyUI • Pony Diffusion v6</div>
+    </div>
+
+    <div class="chat-app">
+        <div class="header">
+            <div class="header-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <h1>FLUX Studio</h1>
+                <span class="badge">PREMIUM</span>
+            </div>
+            <div class="header-right">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Онлайн</span>
+            </div>
+        </div>
+
+        <div class="settings-panel">
+            <div class="settings-left">
+                <label>Шаги: <input type="range" id="stepsSlider" min="10" max="50" value="28"><span id="stepsValue">28</span></label>
+            </div>
+            <div class="comfy-status" id="comfyStatus" onclick="checkComfyUI()">
+                <span id="comfyDot">●</span>
+                <span id="comfyText">ComfyUI: проверка...</span>
+            </div>
+        </div>
+
+        <div class="messages" id="chatBox">
+            <div class="message-wrapper assistant">
+                <div class="avatar">⚡</div>
+                <div class="content">
+                    Привет! Я подключен к ComfyUI с Pony Diffusion v6 + Refiner.<br><br>
+                    Опиши любое изображение — я сгенерирую его через ComfyUI API.<br>
+                    <span style="color:#555;font-size:12px;">RTX 4060 • 16GB RAM • CORS enabled</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-container">
+                <textarea id="promptInput" rows="1" placeholder="Опишите изображение максимально подробно..."></textarea>
+                <button id="sendBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="19" x2="12" y2="5"></line>
+                        <polyline points="5 12 12 5 19 12"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════
+        // COMFYUI CONFIG — ТВОЙ CLOUDPUB ТУННЕЛЬ
+        // ═══════════════════════════════════════════════════
+        const COMFYUI_URL = "https://languorously-regal-barbet.cloudpub.ru";
+
+        // ═══════════════════════════════════════════════════
+        // ТВОЙ WORKFLOW (API формат) — Pony Diffusion v6 + Refiner
+        // ═══════════════════════════════════════════════════
+        const BASE_WORKFLOW = {
+            "1": {
+                "inputs": {
+                    "unet_name": "pony_diffusion_v6_xl_Q8_0.gguf"
+                },
+                "class_type": "UnetLoaderGGUF",
+                "_meta": {
+                    "title": "Unet Loader (GGUF)"
+                }
+            },
+            "3": {
+                "inputs": {
+                    "clip_name1": "pony_clip_g.safetensors",
+                    "clip_name2": "pony_clip_l.safetensors",
+                    "type": "sdxl",
+                    "device": "default"
+                },
+                "class_type": "DualCLIPLoader",
+                "_meta": {
+                    "title": "Dual CLIP Loader"
+                }
+            },
+            "5": {
+                "inputs": {
+                    "vae_name": "pony_VAE_SDXL.safetensors"
+                },
+                "class_type": "VAELoader",
+                "_meta": {
+                    "title": "Load VAE"
+                }
+            },
+            "6": {
+                "inputs": {
+                    "text": "",
+                    "clip": ["3", 0]
+                },
+                "class_type": "CLIPTextEncode",
+                "_meta": {
+                    "title": "Positive Prompt"
+                }
+            },
+            "7": {
+                "inputs": {
+                    "text": "worst quality, low quality, normal quality, lowres, bad anatomy, bad hands, extra fingers, fewer fingers, missing fingers, extra digit, fewer digits, mutated hands, fused fingers, too many fingers, deformed, blurry, watermark, text, signature, username, artist name, jpeg artifacts, compression artifacts, chromatic aberration (excessive), bad eyes, asymmetric eyes, crossed eyes, empty eyes, dead eyes, dull eyes, poorly drawn eyes, extra eyes, missing eye, bad face, ugly face, distorted face, deformed face, extra faces, duplicate face, bad proportions, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, simple background (jika ingin background detail), flat color, flat shading, 3d, realistic, photo, semi-realistic, cgi, render, cleavage, revealing, cropped, out of frame, cut off, poorly cropped",
+                    "clip": ["3", 0]
+                },
+                "class_type": "CLIPTextEncode",
+                "_meta": {
+                    "title": "Negative Prompt"
+                }
+            },
+            "9": {
+                "inputs": {
+                    "width": 1024,
+                    "height": 1024,
+                    "batch_size": 1
+                },
+                "class_type": "EmptyLatentImage",
+                "_meta": {
+                    "title": "Empty Latent Image"
+                }
+            },
+            "8": {
+                "inputs": {
+                    "seed": 0,
+                    "steps": 30,
+                    "cfg": 5.0,
+                    "sampler_name": "euler_ancestral",
+                    "scheduler": "karras",
+                    "denoise": 1.0,
+                    "model": ["1", 0],
+                    "positive": ["6", 0],
+                    "negative": ["7", 0],
+                    "latent_image": ["9", 0]
+                },
+                "class_type": "KSampler",
+                "_meta": {
+                    "title": "KSampler-1"
+                }
+            },
+            "10": {
+                "inputs": {
+                    "samples": ["8", 0],
+                    "vae": ["5", 0]
+                },
+                "class_type": "VAEDecode",
+                "_meta": {
+                    "title": "Decode VAE"
+                }
+            },
+            "11": {
+                "inputs": {
+                    "images": ["10", 0]
+                },
+                "class_type": "PreviewImage",
+                "_meta": {
+                    "title": "Preview Image"
+                }
+            },
+            "17": {
+                "inputs": {
+                    "filename_prefix": "ComfyUI",
+                    "images": ["10", 0]
+                },
+                "class_type": "SaveImage",
+                "_meta": {
+                    "title": "Save Image"
+                }
+            },
+            "12": {
+                "inputs": {
+                    "upscale_method": "bicubic",
+                    "scale_by": 1.5,
+                    "samples": ["8", 0]
+                },
+                "class_type": "LatentUpscaleBy",
+                "_meta": {
+                    "title": "Upscale Latent By"
+                }
+            },
+            "13": {
+                "inputs": {
+                    "seed": 0,
+                    "steps": 15,
+                    "cfg": 5.0,
+                    "sampler_name": "euler_ancestral",
+                    "scheduler": "simple",
+                    "denoise": 1.0,
+                    "model": ["1", 0],
+                    "positive": ["6", 0],
+                    "negative": ["7", 0],
+                    "latent_image": ["12", 0]
+                },
+                "class_type": "KSampler",
+                "_meta": {
+                    "title": "KSampler-Refiner"
+                }
+            },
+            "14": {
+                "inputs": {
+                    "samples": ["13", 0],
+                    "vae": ["5", 0]
+                },
+                "class_type": "VAEDecode",
+                "_meta": {
+                    "title": "Decode VAE"
+                }
+            },
+            "15": {
+                "inputs": {
+                    "images": ["14", 0]
+                },
+                "class_type": "PreviewImage",
+                "_meta": {
+                    "title": "Preview Image (Refiner)"
+                }
+            },
+            "16": {
+                "inputs": {
+                    "filename_prefix": "ComfyUI",
+                    "images": ["14", 0]
+                },
+                "class_type": "SaveImage",
+                "_meta": {
+                    "title": "Save Image (Refiner)"
+                }
+            }
+        };
+
+        const chatBox = document.getElementById('chatBox');
+        const input = document.getElementById('promptInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const stepsSlider = document.getElementById('stepsSlider');
+        const stepsValue = document.getElementById('stepsValue');
+        const sidebar = document.getElementById('sidebar');
+        const comfyStatus = document.getElementById('comfyStatus');
+        const comfyText = document.getElementById('comfyText');
+        const comfyDot = document.getElementById('comfyDot');
+
+        let isGenerating = false;
+        let currentHistoryId = Date.now().toString();
+        let chatHistories = JSON.parse(localStorage.getItem('fluxHistories') || '{}');
+        let currentMessages = [];
+
+        stepsSlider.oninput = () => stepsValue.textContent = stepsSlider.value;
+
+        // Проверка подключения к ComfyUI
+        async function checkComfyUI() {
+            try {
+                const resp = await fetch(`${COMFYUI_URL}/system_stats`, { method: 'GET' });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const gpu = data.devices[0]?.name || 'GPU';
+                    comfyStatus.className = 'comfy-status connected';
+                    comfyText.textContent = `ComfyUI: ${gpu.split(':')[0].trim()}`;
+                    comfyDot.style.color = '#30d158';
+                    return true;
+                }
+            } catch (e) {
+                console.log('ComfyUI не доступен:', e);
+            }
+            comfyStatus.className = 'comfy-status error';
+            comfyText.textContent = `ComfyUI: offline`;
+            comfyDot.style.color = '#ff453a';
+            return false;
+        }
+
+        checkComfyUI();
+        setInterval(checkComfyUI, 10000);
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('open');
+        }
+
+        function saveHistory() {
+            chatHistories[currentHistoryId] = currentMessages;
+            localStorage.setItem('fluxHistories', JSON.stringify(chatHistories));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '';
+            Object.keys(chatHistories).reverse().forEach(id => {
+                const div = document.createElement('div');
+                div.className = `history-item ${id === currentHistoryId ? 'active' : ''}`;
+                const firstMsg = chatHistories[id]?.find(m => m.role === 'user')?.content || 'Новый чат';
+                div.textContent = firstMsg.substring(0, 36) + (firstMsg.length > 36 ? '...' : '');
+                div.onclick = () => loadChat(id);
+                list.appendChild(div);
+            });
+        }
+
+        function loadChat(id) {
+            currentHistoryId = id;
+            currentMessages = chatHistories[id] || [];
+            chatBox.innerHTML = '';
+            currentMessages.forEach(msg => {
+                addMessage(msg.role, msg.content, msg.image);
+            });
+            renderHistory();
+            if (window.innerWidth <= 768) sidebar.classList.remove('open');
+        }
+
+        function newChat() {
+            currentHistoryId = Date.now().toString();
+            currentMessages = [];
+            chatBox.innerHTML = `
+                <div class="message-wrapper assistant">
+                    <div class="avatar">⚡</div>
+                    <div class="content">Новый чат начат. Опишите изображение.</div>
+                </div>
+            `;
+            saveHistory();
+            if (window.innerWidth <= 768) sidebar.classList.remove('open');
+        }
+
+        function addMessage(role, content, imageUrl = null) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `message-wrapper ${role}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.textContent = role === 'user' ? '👤' : '⚡';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'content';
+
+            if (imageUrl) {
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.loading = 'lazy';
+                contentDiv.appendChild(img);
+
+                const btnGroup = document.createElement('div');
+                btnGroup.className = 'btn-group';
+
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'action-btn download-btn';
+                downloadBtn.textContent = '💾 Скачать';
+                downloadBtn.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = imageUrl;
+                    a.download = `flux_${Date.now()}.png`;
+                    a.click();
+                };
+                btnGroup.appendChild(downloadBtn);
+                contentDiv.appendChild(btnGroup);
+            } else {
+                contentDiv.textContent = content;
+            }
+
+            wrapper.appendChild(avatar);
+            wrapper.appendChild(contentDiv);
+            chatBox.appendChild(wrapper);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            if (role === 'user' || imageUrl) {
+                currentMessages.push({ role, content, image: imageUrl });
+                saveHistory();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        // COMFYUI GENERATION
+        // ═══════════════════════════════════════════════════
+        async function generateWithComfyUI(prompt) {
+            if (isGenerating || !prompt.trim()) return;
+            isGenerating = true;
+            sendBtn.disabled = true;
+            input.disabled = true;
+
+            addMessage('user', prompt);
+
+            const loadingWrapper = document.createElement('div');
+            loadingWrapper.className = 'message-wrapper assistant';
+            loadingWrapper.id = 'loadingMsg';
+            loadingWrapper.innerHTML = `
+                <div class="avatar">⚡</div>
+                <div class="content">
+                    <div style="display:flex; align-items:center; gap:12px; color:#666;">
+                        <div style="width:18px;height:18px;border:2px solid rgba(255,255,255,0.06);border-top-color:rgba(255,255,255,0.5);border-radius:50%;animation:spin 1s linear infinite;"></div>
+                        Отправка в ComfyUI...
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">Подключение...</div>
+                </div>
+            `;
+            chatBox.appendChild(loadingWrapper);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            const updateProgress = (percent, text) => {
+                const fill = document.getElementById('progressFill');
+                const txt = document.getElementById('progressText');
+                if (fill) fill.style.width = percent + '%';
+                if (txt) txt.textContent = text;
+            };
+
+            try {
+                const workflow = JSON.parse(JSON.stringify(BASE_WORKFLOW));
+
+                workflow["6"].inputs.text = prompt;
+                workflow["8"].inputs.steps = parseInt(stepsSlider.value);
+                workflow["8"].inputs.seed = Math.floor(Math.random() * 999999999999999);
+                workflow["13"].inputs.seed = Math.floor(Math.random() * 999999999999999);
+
+                updateProgress(10, 'Отправка workflow...');
+
+                const promptResp = await fetch(`${COMFYUI_URL}/prompt`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: workflow })
+                });
+
+                if (!promptResp.ok) {
+                    throw new Error(`ComfyUI вернул ${promptResp.status}`);
+                }
+
+                const promptData = await promptResp.json();
+                const promptId = promptData.prompt_id;
+
+                updateProgress(20, `Генерация началась (ID: ${promptId.slice(0,8)}...)`);
+
+                let completed = false;
+                let attempts = 0;
+                const maxAttempts = 180;
+
+                while (!completed && attempts < maxAttempts) {
+                    await new Promise(r => setTimeout(r, 1000));
+                    attempts++;
+
+                    const historyResp = await fetch(`${COMFYUI_URL}/history/${promptId}`);
+                    if (!historyResp.ok) continue;
+
+                    const history = await historyResp.json();
+
+                    if (history[promptId] && history[promptId].outputs) {
+                        completed = true;
+                        updateProgress(80, 'Изображение готово, загрузка...');
+
+                        const outputs = history[promptId].outputs;
+                        let imageInfo = null;
+
+                        for (const nodeId in outputs) {
+                            if (outputs[nodeId].images && outputs[nodeId].images.length > 0) {
+                                imageInfo = outputs[nodeId].images[0];
+                            }
+                        }
+
+                        if (imageInfo) {
+                            const viewUrl = `${COMFYUI_URL}/view?filename=${encodeURIComponent(imageInfo.filename)}&subfolder=${encodeURIComponent(imageInfo.subfolder || '')}&type=output`;
+
+                            updateProgress(95, 'Почти готово...');
+
+                            const imgResp = await fetch(viewUrl);
+                            const blob = await imgResp.blob();
+                            const imageUrl = URL.createObjectURL(blob);
+
+                            const loading = document.getElementById('loadingMsg');
+                            if (loading) loading.remove();
+
+                            addMessage('assistant', prompt, imageUrl);
+                        } else {
+                            throw new Error('Изображение не найдено в output');
+                        }
+                    } else {
+                        const progress = Math.min(20 + (attempts / maxAttempts) * 60, 75);
+                        updateProgress(progress, `Генерация... (${attempts}s)`);
+                    }
+                }
+
+                if (!completed) {
+                    throw new Error('Таймаут генерации (3 минуты)');
+                }
+
+            } catch (e) {
+                console.error('Generation error:', e);
+                const loading = document.getElementById('loadingMsg');
+                if (loading) {
+                    loading.innerHTML = `
+                        <div class="avatar">⚡</div>
+                        <div class="content" style="color:#ff453a;">
+                            ❌ Ошибка: ${e.message}<br>
+                            <span style="color:#555;font-size:12px;">Проверь, что туннель cloudpub запущен</span>
+                        </div>
+                    `;
+                }
+            } finally {
+                isGenerating = false;
+                sendBtn.disabled = false;
+                input.disabled = false;
+                input.focus();
+            }
+        }
+
+        sendBtn.addEventListener('click', () => {
+            const prompt = input.value.trim();
+            if (prompt) {
+                input.value = '';
+                input.style.height = 'auto';
+                generateWithComfyUI(prompt);
+            }
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const prompt = input.value.trim();
+                if (prompt) {
+                    input.value = '';
+                    input.style.height = 'auto';
+                    generateWithComfyUI(prompt);
+                }
+            }
+        });
+
+        input.addEventListener('input', () => {
+            input.style.height = 'auto';
+            input.style.height = Math.min(input.scrollHeight, 180) + 'px';
+        });
+
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 && sidebar.classList.contains('open')) {
+                if (!sidebar.contains(e.target) && !e.target.closest('.menu-toggle')) {
+                    sidebar.classList.remove('open');
+                }
+            }
+        });
+
+        if (Object.keys(chatHistories).length === 0) {
+            newChat();
+        } else {
+            renderHistory();
+            loadChat(Object.keys(chatHistories).pop());
+        }
+
+        console.log('%c FLUX Studio + ComfyUI', 'color:#888;font-size:14px;font-weight:600;');
+        console.log('%c CloudPub: ' + COMFYUI_URL, 'color:#555;font-size:12px;');
+    </script>
+</body>
+</html>
