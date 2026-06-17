@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flux AI — Генератор изображений</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0a;
+            color: #e8e8e8;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at 30% 40%, rgba(255,255,255,0.02), transparent 70%),
+                radial-gradient(ellipse at 70% 60%, rgba(255,255,255,0.015), transparent 70%);
+            z-index: 0;
+            animation: breathe 12s ease-in-out infinite alternate;
+        }
+        @keyframes breathe {
+            0% { opacity: 0.5; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.04); }
+        }
+        .app {
+            width: 100%;
+            max-width: 1100px;
+            height: 96vh;
+            background: rgba(14,14,16,0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 36px;
+            border: 1px solid rgba(255,255,255,0.04);
+            box-shadow: 0 40px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.03);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+        }
+        .header {
+            padding: 18px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            flex-shrink: 0;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.3px;
+        }
+        .logo i { font-size: 26px; color: #cccccc; }
+        .badge {
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.06);
+            color: #999999;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #666666;
+            letter-spacing: 0.2px;
+        }
+        .status .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status .dot.online {
+            background: #888888;
+            box-shadow: 0 0 10px rgba(255,255,255,0.05);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        .status .dot.offline {
+            background: #333333;
+            animation: none;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .header-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .header-actions button {
+            background: rgba(255,255,255,0.03);
+            border: none;
+            color: #666666;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        .header-actions button:hover {
+            background: rgba(255,255,255,0.07);
+            color: #ffffff;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 28px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            scroll-behavior: smooth;
+        }
+        .messages::-webkit-scrollbar { width: 4px; }
+        .messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+        .messages::-webkit-scrollbar-track { background: transparent; }
+        .msg {
+            display: flex;
+            gap: 14px;
+            padding: 16px 0;
+            animation: fadeSlide 0.4s ease;
+        }
+        .msg.user { flex-direction: row-reverse; }
+        @keyframes fadeSlide {
+            0% { opacity: 0; transform: translateY(14px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .msg .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.05);
+            color: #aaaaaa;
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+        .msg.user .avatar {
+            background: rgba(255,255,255,0.08);
+            color: #ffffff;
+        }
+        .msg .bubble {
+            max-width: 72%;
+            padding: 14px 20px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.6;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.04);
+            color: #dddddd;
+        }
+        .msg.user .bubble {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.04);
+            color: #ffffff;
+        }
+        .msg .bubble img {
+            max-width: 100%;
+            border-radius: 14px;
+            margin-top: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            display: block;
+            filter: grayscale(1);
+            transition: filter 0.4s;
+        }
+        .msg .bubble img:hover { filter: grayscale(0); }
+        .msg .bubble .loading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #777777;
+        }
+        .msg .bubble .loading .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.06);
+            border-top: 2px solid #999999;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .msg .bubble .error { color: #555555; }
+        .input-area {
+            padding: 16px 28px 24px;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            flex-shrink: 0;
+        }
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 18px;
+            padding: 4px 6px 4px 18px;
+            transition: border 0.25s, box-shadow 0.25s;
+        }
+        .input-wrapper:focus-within {
+            border-color: rgba(255,255,255,0.12);
+            box-shadow: 0 0 0 4px rgba(255,255,255,0.02);
+        }
+        .input-wrapper textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px 0;
+            color: #eeeeee;
+            font-size: 15px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            min-height: 48px;
+            max-height: 160px;
+            line-height: 1.5;
+        }
+        .input-wrapper textarea::placeholder { color: #555555; }
+        .input-wrapper .btn-send {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.06);
+            color: #cccccc;
+            padding: 10px 22px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.25s;
+            white-space: nowrap;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 0.2px;
+        }
+        .input-wrapper .btn-send:hover {
+            background: rgba(255,255,255,0.12);
+            color: #ffffff;
+            border-color: rgba(255,255,255,0.1);
+        }
+        .input-wrapper .btn-send:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .input-wrapper .btn-send i { font-size: 13px; }
+        .footer-hint {
+            text-align: center;
+            font-size: 11px;
+            color: #444444;
+            padding: 8px 0 0;
+            letter-spacing: 0.3px;
+        }
+        .footer-hint span { color: #555555; }
+        @media (max-width: 768px) {
+            .app { height: 100vh; border-radius: 0; backdrop-filter: none; }
+            .msg .bubble { max-width: 88%; }
+            .header { padding: 14px 18px; }
+            .messages { padding: 16px 16px 4px; }
+            .input-area { padding: 12px 16px 18px; }
+            .input-wrapper { padding: 2px 4px 2px 14px; }
+            .input-wrapper .btn-send { padding: 8px 16px; font-size: 12px; height: 42px; }
+            .logo { font-size: 17px; }
+            .badge { font-size: 8px; padding: 2px 10px; }
+            .header-right .status { font-size: 10px; }
+        }
+        @media (max-width: 480px) {
+            .msg .bubble { font-size: 14px; padding: 12px 16px; }
+            .msg .avatar { width: 30px; height: 30px; font-size: 12px; }
+            .input-wrapper .btn-send span { display: none; }
+            .input-wrapper .btn-send { padding: 8px 14px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app">
+        <header class="header">
+            <div class="header-left">
+                <div class="logo"><i class="fas fa-wand-magic-sparkles"></i>Flux AI</div>
+                <span class="badge"><i class="fas fa-bolt" style="margin-right:4px;"></i>Uncensored</span>
+            </div>
+            <div class="header-right">
+                <div class="status">
+                    <span class="dot online" id="statusDot"></span>
+                    <span id="statusText">Online</span>
+                </div>
+                <div class="header-actions">
+                    <button onclick="clearChat()" title="Очистить чат">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="messages" id="chatBox">
+            <div class="msg assistant">
+                <div class="avatar"><i class="fas fa-robot"></i></div>
+                <div class="bubble">
+                    <strong>Привет.</strong> Я <span style="color:#aaaaaa;">Flux AI</span> — генератор изображений.<br />
+                    Напиши промпт, и я создам фотореалистичную картинку.
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <textarea id="promptInput" rows="1" placeholder="Опиши, что сгенерировать… (Enter → отправить)"></textarea>
+                <button class="btn-send" id="sendBtn">
+                    <i class="fas fa-arrow-right"></i>
+                    <span>Отправить</span>
+                </button>
+            </div>
+            <div class="footer-hint">
+                <span>⚡</span> Генерация занимает 20–40 секунд
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        //  КОНФИГУРАЦИЯ — УБИРАЕМ ABSOLUTE URL!
+        // ============================================================
+        const COMFYUI_URL = '';  // ← Пустая строка = относительные пути
+
+        // ============================================================
+        //  DOM-ЭЛЕМЕНТЫ
+        // ============================================================
+        const chatBox = document.getElementById('chatBox');
+        const input = document.getElementById('promptInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+
+        let isGenerating = false;
+
+        async function checkServerStatus() {
+            try {
+                const res = await fetch('/system_stats');
+                if (res.ok) {
+                    statusDot.className = 'dot online';
+                    statusText.textContent = 'Online';
+                } else {
+                    throw new Error('offline');
+                }
+            } catch {
+                statusDot.className = 'dot offline';
+                statusText.textContent = 'Offline';
+            }
+        }
+
+        function addMessage(role, content, imageUrl = null) {
+            const div = document.createElement('div');
+            div.className = `msg ${role}`;
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.innerHTML = role === 'user'
+                ? '<i class="fas fa-user"></i>'
+                : '<i class="fas fa-robot"></i>';
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            if (imageUrl) {
+                bubble.innerHTML = `<img src="${imageUrl}" alt="generated" loading="lazy" />`;
+            } else {
+                bubble.textContent = content;
+            }
+            div.appendChild(avatar);
+            div.appendChild(bubble);
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return bubble;
+        }
+
+        function showLoading() {
+            const div = document.createElement('div');
+            div.className = 'msg assistant';
+            div.id = 'loadingMsg';
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.innerHTML = '<i class="fas fa-robot"></i>';
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            bubble.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>Генерирую…</span>
+                </div>
+            `;
+            div.appendChild(avatar);
+            div.appendChild(bubble);
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return div;
+        }
+
+        function removeLoading() {
+            const el = document.getElementById('loadingMsg');
+            if (el) el.remove();
+        }
+
+        async function generateImage(prompt) {
+            if (isGenerating || !prompt.trim()) return;
+
+            isGenerating = true;
+            sendBtn.disabled = true;
+            input.disabled = true;
+
+            addMessage('user', prompt);
+            showLoading();
+
+            try {
+                const res = await fetch('/prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+
+                if (!res.ok) throw new Error(`Ошибка ${res.status}`);
+
+                const data = await res.json();
+                const promptId = data.prompt_id;
+
+                let imageUrl = null;
+                for (let i = 0; i < 60; i++) {
+                    await new Promise(r => setTimeout(r, 1000));
+
+                    const historyRes = await fetch(`/history/${promptId}`);
+                    const history = await historyRes.json();
+
+                    if (history[promptId]?.outputs) {
+                        const outputs = history[promptId].outputs;
+                        for (const nodeId in outputs) {
+                            const img = outputs[nodeId]?.images?.[0];
+                            if (img) {
+                                imageUrl = `/view?filename=${img.filename}&subfolder=${img.subfolder}&type=${img.type}`;
+                                break;
+                            }
+                        }
+                        if (imageUrl) break;
+                    }
+                }
+
+                removeLoading();
+
+                if (imageUrl) {
+                    addMessage('assistant', '✅ Готово.', imageUrl);
+                } else {
+                    throw new Error('Не удалось получить изображение');
+                }
+
+            } catch (err) {
+                removeLoading();
+                const bubble = addMessage('assistant', '❌ Ошибка: ' + err.message);
+                bubble.classList.add('error');
+            } finally {
+                isGenerating = false;
+                sendBtn.disabled = false;
+                input.disabled = false;
+                input.focus();
+            }
+        }
+
+        function clearChat() {
+            if (isGenerating) return;
+            const items = chatBox.querySelectorAll('.msg');
+            for (let i = 1; i < items.length; i++) {
+                items[i].remove();
+            }
+        }
+
+        sendBtn.addEventListener('click', () => {
+            const val = input.value.trim();
+            if (val) {
+                input.value = '';
+                generateImage(val);
+            }
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const val = input.value.trim();
+                if (val) {
+                    input.value = '';
+                    generateImage(val);
+                }
+            }
+        });
+
+        input.addEventListener('input', () => {
+            input.style.height = 'auto';
+            input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+        });
+
+        checkServerStatus();
+        setInterval(checkServerStatus, 15000);
+        console.log('🖤 Flux AI Chat (Black & White) запущен!');
+    </script>
+
+</body>
+</html>
