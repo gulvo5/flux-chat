@@ -353,12 +353,12 @@
 
     <script>
         // ============================================================
-        //  КОНФИГУРАЦИЯ — УБИРАЕМ ABSOLUTE URL!
+        //  НАСТРОЙКА ПОДКЛЮЧЕНИЯ К COMFYUI
         // ============================================================
-        const COMFYUI_URL = '';  // ← Пустая строка = относительные пути
+        const COMFYUI_URL = 'http://192.168.0.111:8188';  // ← ТВОЙ ЛОКАЛЬНЫЙ IP!
 
         // ============================================================
-        //  DOM-ЭЛЕМЕНТЫ
+        //  КОД ЧАТА
         // ============================================================
         const chatBox = document.getElementById('chatBox');
         const input = document.getElementById('promptInput');
@@ -370,7 +370,7 @@
 
         async function checkServerStatus() {
             try {
-                const res = await fetch('/system_stats');
+                const res = await fetch(`${COMFYUI_URL}/system_stats`);
                 if (res.ok) {
                     statusDot.className = 'dot online';
                     statusText.textContent = 'Online';
@@ -443,7 +443,7 @@
             showLoading();
 
             try {
-                const res = await fetch('/prompt', {
+                const res = await fetch(`${COMFYUI_URL}/prompt`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ prompt })
@@ -458,7 +458,7 @@
                 for (let i = 0; i < 60; i++) {
                     await new Promise(r => setTimeout(r, 1000));
 
-                    const historyRes = await fetch(`/history/${promptId}`);
+                    const historyRes = await fetch(`${COMFYUI_URL}/history/${promptId}`);
                     const history = await historyRes.json();
 
                     if (history[promptId]?.outputs) {
@@ -466,7 +466,7 @@
                         for (const nodeId in outputs) {
                             const img = outputs[nodeId]?.images?.[0];
                             if (img) {
-                                imageUrl = `/view?filename=${img.filename}&subfolder=${img.subfolder}&type=${img.type}`;
+                                imageUrl = `${COMFYUI_URL}/view?filename=${img.filename}&subfolder=${img.subfolder}&type=${img.type}`;
                                 break;
                             }
                         }
